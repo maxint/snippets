@@ -16,9 +16,13 @@ const char WIN_NAME[] = "Lena";
 const char WIN_NAME_WARPED[] = "Wrapped";
 const CvScalar FD_FLAG_COLOR = {0,0,255,255};
 
-const int TRI_NUM = 1;
-const CvPoint2D64d TRI_ARR1[] = {{0,0}, {0.5,0.5}, {0,1}}; // v1, v2, v3
-const CvPoint2D64d TRI_ARR2[] = {{0.8,0.8}, {0,1}, {0.5,0.5}}; // v1', v2', v3'
+const int TRI_NUM = 3;
+const CvPoint2D64d TRI_ARR1[] = {{0.1,0.1}, {0.5,0.5}, {0.1,1}}; // v1, v2, v3
+const CvPoint2D64d TRI_ARR2[] = {
+	{0.8,0.8}, {0,1}, {0.5,0.5}, 
+	{0.5,0.5},{0,1}, {0.2,0.2},
+	{0.5,0.2},{0.8,0.8}, {0,0.2}
+}; // v1', v2', v3'
 //const CvPoint2D64d TRI_ARR2[] = {{1,1}, {0,1}, {0.5,0.5}}; // v1', v2', v3'
 
 void scanline_fill(int y, int l, int r, const double *aff_mat, const CvPoint2D64d tri1[], 
@@ -35,7 +39,7 @@ int main( int argc, char* argv[] )
 	IplImage	*img = NULL;
 	IplImage	*imgWrapped = NULL;
 	CvPoint2D64d tri1[3], tri2[3];
-	int i;
+	int i,k;
 	CvPoint pts[3];
 	CvPoint *ptsa[] = {pts};
 	int npts[] = {3};
@@ -47,14 +51,20 @@ int main( int argc, char* argv[] )
 	{
 		tri1[i].x = TRI_ARR1[i].x*(img->width-1);
 		tri1[i].y = TRI_ARR1[i].y*(img->height-1);
-		tri2[i].x = TRI_ARR2[i].x*(img->width-1);
-		tri2[i].y = TRI_ARR2[i].y*(img->height-1);
 		pts[i].x = (int)(tri1[i].x+0.5f);
 		pts[i].y = (int)(tri1[i].y+0.5f);
 	}
 	cvPolyLine(img, ptsa, npts, 1, 1, FD_FLAG_COLOR, 2, 8, 0);
 
-	triangle_warping(tri1, tri2, img, imgWrapped);
+	for (k=0; k<TRI_NUM; ++k)
+	{
+		for (i=0; i<3; ++i)
+		{
+			tri2[i].x = TRI_ARR2[k*3+i].x*(img->width-1);
+			tri2[i].y = TRI_ARR2[k*3+i].y*(img->height-1);
+		}
+		triangle_warping(tri1, tri2, img, imgWrapped);
+	}
 
 	cvNamedWindow(WIN_NAME, CV_WINDOW_AUTOSIZE);
 	cvNamedWindow(WIN_NAME_WARPED, CV_WINDOW_AUTOSIZE);
@@ -62,6 +72,8 @@ int main( int argc, char* argv[] )
 	cvShowImage(WIN_NAME_WARPED, imgWrapped);
 
 	cvWaitKey(0);
+
+	cvSaveImage("tmp.png", imgWrapped, 0);
 
 	cvDestroyWindow(WIN_NAME);
 	cvDestroyWindow(WIN_NAME_WARPED);
@@ -120,6 +132,7 @@ void triangle_warping(const CvPoint2D64d tri1[],
 	double dxl, dxr;
 	double xld, xrd;
 
+	//** Step1: calculate affine matrix
 	denominator = -tri2[1].x*tri2[2].y+tri2[1].x*tri2[0].y+tri2[0].x*tri2[2].y-tri2[0].x*tri2[1].y+tri2[2].x*tri2[1].y-tri2[2].x*tri2[0].y;
 	aff_mat[0] = (-tri2[2].y+tri2[0].y) / denominator;
 	aff_mat[1] = (tri2[2].x-tri2[0].x) / denominator;
@@ -135,7 +148,7 @@ void triangle_warping(const CvPoint2D64d tri1[],
 		sortedTri2Idx[i] = i;
 	}
 
-	// sort the points of a triangle, from bottom to top
+	//** Step2: sort the points of a triangle, from top(small) to bottom(large), for left to right
 	for (i=0; i<3; ++i)
 	{
 		int p = i;
@@ -154,15 +167,17 @@ void triangle_warping(const CvPoint2D64d tri1[],
 		}
 	}
 
+	//** Step3: scan-line algorithm
+
 	/*
-	 *	first pair
+	 *	first pair, the top triangle
 	 */
 
 	yCur = tri2Int[sortedTri2Idx[0]].y;
 	if (tri2Int[sortedTri2Idx[1]].y==tri2Int[sortedTri2Idx[0]].y) // horizontal line
 	{
 		scanline_fill(yCur, tri2Int[sortedTri2Idx[0]].x, tri2Int[sortedTri2Idx[1]].x,
-		aff_mat, tri1, imgOrig, imgDst);
+			aff_mat, tri1, imgOrig, imgDst);
 	}
 	else if (tri2Int[sortedTri2Idx[2]].y!=tri2Int[sortedTri2Idx[0]].y)
 	{
@@ -175,10 +190,12 @@ void triangle_warping(const CvPoint2D64d tri1[],
 			dxl = dxr;
 			dxr = tmp;
 		}
+		xld += (yCur-tri2[sortedTri2Idx[0]].y)*dxl;
+		xrd += (yCur-tri2[sortedTri2Idx[0]].y)*dxr;
 		for (; yCur<=tri2Int[sortedTri2Idx[1]].y; ++yCur)
 		{
-			xl = (int)(xld+0.5f);
-			xr = (int)(xrd+0.5f);
+			xl = (int)(xld);
+			xr = (int)(xrd);
 			scanline_fill(yCur, xl, xr, aff_mat, tri1, imgOrig, imgDst);
 			xld += dxl;
 			xrd += dxr;
@@ -186,14 +203,14 @@ void triangle_warping(const CvPoint2D64d tri1[],
 	}
 
 	/*
-	 *	second pair
+	 *	second pair, the bottom triangle
 	 */
 
 	yCur = tri2Int[sortedTri2Idx[2]].y;
 	if (tri2Int[sortedTri2Idx[1]].y==tri2Int[sortedTri2Idx[2]].y) // horizontal line
 	{
-		scanline_fill(yCur, tri2Int[sortedTri2Idx[1]].x, tri2Int[sortedTri2Idx[2]].x,
-		aff_mat, tri1, imgOrig, imgDst);
+	/*	scanline_fill(yCur, tri2Int[sortedTri2Idx[1]].x, tri2Int[sortedTri2Idx[2]].x,
+		aff_mat, tri1, imgOrig, imgDst);*/
 	}
 	else
 	{
@@ -206,10 +223,12 @@ void triangle_warping(const CvPoint2D64d tri1[],
 			dxl = dxr;
 			dxr = tmp;
 		}
-		for (; yCur>=tri2Int[sortedTri2Idx[1]].y; --yCur)
+		xld += (yCur-tri2[sortedTri2Idx[2]].y)*dxl;
+		xrd += (yCur-tri2[sortedTri2Idx[2]].y)*dxr;
+		for (; yCur>tri2Int[sortedTri2Idx[1]].y; --yCur)
 		{
-			xl = (int)(xld+0.5f);
-			xr = (int)(xrd+0.5f);
+			xl = (int)(xld);
+			xr = (int)(xrd);
 			scanline_fill(yCur, xl, xr, aff_mat, tri1, imgOrig, imgDst);
 			xld -= dxl;
 			xrd -= dxr;
