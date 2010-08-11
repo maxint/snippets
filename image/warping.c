@@ -12,6 +12,8 @@
 #pragma comment(lib, "highgui210.lib")
 #endif
 
+#define SL_EPS 0.0001f
+
 const char WIN_NAME[] = "Lena";
 const char WIN_NAME_WARPED[] = "Wrapped";
 const CvScalar FD_FLAG_COLOR = {0,0,255,255};
@@ -19,11 +21,10 @@ const CvScalar FD_FLAG_COLOR = {0,0,255,255};
 const int TRI_NUM = 3;
 const CvPoint2D64d TRI_ARR1[] = {{0.1,0.1}, {0.5,0.5}, {0.1,1}}; // v1, v2, v3
 const CvPoint2D64d TRI_ARR2[] = {
-	{0.8,0.8}, {0,1}, {0.5,0.5}, 
-	{0.5,0.5},{0,1}, {0.2,0.2},
-	{0.5,0.2},{0.8,0.8}, {0,0.2}
+	{0.8,0.8}, {0.15,0.8}, {0.5,0.5}, 
+	{0.5,0.5},{0.15,0.8}, {0.2,0.2},
+	{0.5,0.2},{0.8,0.8}, {0,0}
 }; // v1', v2', v3'
-//const CvPoint2D64d TRI_ARR2[] = {{1,1}, {0,1}, {0.5,0.5}}; // v1', v2', v3'
 
 void scanline_fill(int y, int l, int r, const double *aff_mat, const CvPoint2D64d tri1[], 
 				   const IplImage *imgOrig, IplImage *imgDst);
@@ -54,7 +55,7 @@ int main( int argc, char* argv[] )
 		pts[i].x = (int)(tri1[i].x+0.5f);
 		pts[i].y = (int)(tri1[i].y+0.5f);
 	}
-	cvPolyLine(img, ptsa, npts, 1, 1, FD_FLAG_COLOR, 2, 8, 0);
+	//cvPolyLine(img, ptsa, npts, 1, 1, FD_FLAG_COLOR, 2, 8, 0);
 
 	for (k=0; k<TRI_NUM; ++k)
 	{
@@ -63,7 +64,7 @@ int main( int argc, char* argv[] )
 			tri2[i].x = TRI_ARR2[k*3+i].x*(img->width-1);
 			tri2[i].y = TRI_ARR2[k*3+i].y*(img->height-1);
 		}
-		triangle_warping(tri1, tri2, img, imgWrapped);
+ 		triangle_warping(tri1, tri2, img, imgWrapped);
 	}
 
 	cvNamedWindow(WIN_NAME, CV_WINDOW_AUTOSIZE);
@@ -97,8 +98,12 @@ void scanline_fill(int y, int l, int r, const double *aff_mat, const CvPoint2D64
 
 	for (x=l; x<=r; ++x)
 	{
-		a[1] = aff_mat[0]*x+aff_mat[1]*y+aff_mat[2];
-		a[2] = aff_mat[3]*x+aff_mat[4]*y+aff_mat[5];
+		a[1] = aff_mat[0]*(x+0.5f)+aff_mat[1]*(y+0.5f)+aff_mat[2];
+		a[2] = aff_mat[3]*(x+0.5f)+aff_mat[4]*(y+0.5f)+aff_mat[5];
+		if ((x==l || x==r) && 
+			(a[1]<-SL_EPS || a[1]>1+SL_EPS || a[2]<-SL_EPS || a[2]>1+SL_EPS)
+			) continue;
+
 		a[0] = 1.0f-a[1]-a[2];
 		newX = a[0]*tri1[0].x+a[1]*tri1[1].x+a[2]*tri1[2].x;
 		newY = a[0]*tri1[0].y+a[1]*tri1[1].y+a[2]*tri1[2].y;
@@ -132,6 +137,13 @@ void triangle_warping(const CvPoint2D64d tri1[],
 	double dxl, dxr;
 	double xld, xrd;
 
+	// if any point is out of region, return
+	for (i=0; i<3; ++i)
+	{
+		if (tri2[i].x<0 || tri2[i].x>=imgDst->width) return;
+		if (tri2[i].y<0 || tri2[i].y>=imgDst->height) return;
+	}
+
 	//** Step1: calculate affine matrix
 	denominator = -tri2[1].x*tri2[2].y+tri2[1].x*tri2[0].y+tri2[0].x*tri2[2].y-tri2[0].x*tri2[1].y+tri2[2].x*tri2[1].y-tri2[2].x*tri2[0].y;
 	aff_mat[0] = (-tri2[2].y+tri2[0].y) / denominator;
@@ -143,8 +155,8 @@ void triangle_warping(const CvPoint2D64d tri1[],
 
 	for (i=0; i<3; ++i)
 	{
-		tri2Int[i].x = (int)(tri2[i].x+0.5);
-		tri2Int[i].y = (int)(tri2[i].y+0.5);
+		tri2Int[i].x = (int)(tri2[i].x+0.5f);
+		tri2Int[i].y = (int)(tri2[i].y+0.5f);
 		sortedTri2Idx[i] = i;
 	}
 
@@ -176,7 +188,9 @@ void triangle_warping(const CvPoint2D64d tri1[],
 	yCur = tri2Int[sortedTri2Idx[0]].y;
 	if (tri2Int[sortedTri2Idx[1]].y==tri2Int[sortedTri2Idx[0]].y) // horizontal line
 	{
-		scanline_fill(yCur, tri2Int[sortedTri2Idx[0]].x, tri2Int[sortedTri2Idx[1]].x,
+		scanline_fill(yCur,
+			tri2Int[sortedTri2Idx[0]].x - ((tri2[sortedTri2Idx[0]].x>tri2[sortedTri2Idx[2]].x) ? 1 : 0), 
+			tri2Int[sortedTri2Idx[1]].x + ((tri2[sortedTri2Idx[1]].x<tri2[sortedTri2Idx[2]].x) ? 1 : 0),
 			aff_mat, tri1, imgOrig, imgDst);
 	}
 	else if (tri2Int[sortedTri2Idx[2]].y!=tri2Int[sortedTri2Idx[0]].y)
@@ -190,12 +204,12 @@ void triangle_warping(const CvPoint2D64d tri1[],
 			dxl = dxr;
 			dxr = tmp;
 		}
-		xld += (yCur-tri2[sortedTri2Idx[0]].y)*dxl;
-		xrd += (yCur-tri2[sortedTri2Idx[0]].y)*dxr;
-		for (; yCur<=tri2Int[sortedTri2Idx[1]].y; ++yCur)
+		xld += (yCur+0.5f-tri2[sortedTri2Idx[0]].y)*dxl;
+		xrd += (yCur+0.5f-tri2[sortedTri2Idx[0]].y)*dxr;
+		for (; yCur<tri2Int[sortedTri2Idx[1]].y && yCur<imgDst->height; ++yCur)
 		{
-			xl = (int)(xld);
-			xr = (int)(xrd);
+			xl = (int)(xld+0.5f);
+			xr = (int)(xrd+0.5f);
 			scanline_fill(yCur, xl, xr, aff_mat, tri1, imgOrig, imgDst);
 			xld += dxl;
 			xrd += dxr;
@@ -207,13 +221,17 @@ void triangle_warping(const CvPoint2D64d tri1[],
 	 */
 
 	yCur = tri2Int[sortedTri2Idx[2]].y;
-	if (tri2Int[sortedTri2Idx[1]].y==tri2Int[sortedTri2Idx[2]].y) // horizontal line
+	if (tri2Int[sortedTri2Idx[1]].y==tri2Int[sortedTri2Idx[2]].y &&
+		tri2Int[sortedTri2Idx[1]].y==tri2Int[sortedTri2Idx[0]].y)  // three vertices are collinear
 	{
-	/*	scanline_fill(yCur, tri2Int[sortedTri2Idx[1]].x, tri2Int[sortedTri2Idx[2]].x,
-		aff_mat, tri1, imgOrig, imgDst);*/
+
+		scanline_fill(tri2Int[sortedTri2Idx[2]].y, 
+			tri2Int[sortedTri2Idx[1]].x, tri2Int[sortedTri2Idx[2]].x,
+			aff_mat, tri1, imgOrig, imgDst);
 	}
-	else
+	else if (tri2Int[sortedTri2Idx[1]].y!=tri2Int[sortedTri2Idx[2]].y)
 	{
+		yCur = tri2Int[sortedTri2Idx[2]].y-1;
 		dxl = (tri2[sortedTri2Idx[2]].x-tri2[sortedTri2Idx[1]].x) / (tri2[sortedTri2Idx[2]].y-tri2[sortedTri2Idx[1]].y);
 		dxr = (tri2[sortedTri2Idx[2]].x-tri2[sortedTri2Idx[0]].x) / (tri2[sortedTri2Idx[2]].y-tri2[sortedTri2Idx[0]].y);
 		xld = xrd = tri2[sortedTri2Idx[2]].x;
@@ -223,12 +241,12 @@ void triangle_warping(const CvPoint2D64d tri1[],
 			dxl = dxr;
 			dxr = tmp;
 		}
-		xld += (yCur-tri2[sortedTri2Idx[2]].y)*dxl;
-		xrd += (yCur-tri2[sortedTri2Idx[2]].y)*dxr;
-		for (; yCur>tri2Int[sortedTri2Idx[1]].y; --yCur)
+		xld += (yCur+0.5f-tri2[sortedTri2Idx[2]].y)*dxl;
+		xrd += (yCur+0.5f-tri2[sortedTri2Idx[2]].y)*dxr;
+		for (; yCur>=tri2Int[sortedTri2Idx[1]].y && yCur>=0; --yCur)
 		{
-			xl = (int)(xld);
-			xr = (int)(xrd);
+			xl = (int)(xld+0.5f);
+			xr = (int)(xrd+0.5f);
 			scanline_fill(yCur, xl, xr, aff_mat, tri1, imgOrig, imgDst);
 			xld -= dxl;
 			xrd -= dxr;
