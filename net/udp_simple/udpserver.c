@@ -36,11 +36,11 @@ int main( int argc, char* argv[] )
     for (i=0; i<NPACK; ++i) {
         if (recvfrom(s, buf, BUFLEN, 0, (struct sockaddr*)&si_other, &slen)==-1)
             diep("recvfrom()");
-        printf ( "Received packet from %s:%d\nData: %s\n\n", 
+        printf ( "Received packet from %s:%d\nData: %s\n\n",
                  inet_ntoa(si_other.sin_addr), ntohs(si_other.sin_port), buf);
     }
-    
+
     close(s);
-            
+
     return 0;
 }

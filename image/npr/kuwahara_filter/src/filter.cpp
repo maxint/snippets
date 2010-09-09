@@ -1,6 +1,6 @@
 // ======================================================================================
 // File         : filter.cpp
-// Author       : maxint <lnychina@gmail.com> 
+// Author       : maxint <lnychina@gmail.com>
 // Last Change  : 08/21/2010 | 21:52:45 PM | Saturday,August
 // Description  : CPU implementation of Anisotropic Kuwahara filtering
 //                Paper Home: http://www.kyprianidis.com/pg2009.html
@@ -58,7 +58,7 @@ void CFilter::init(float s_r, float s_s, int N)
     multiply(KK, Mg, KK);
     normalizeMatrix(KK);
     Mat K;
-    KK.convertTo(K, CV_32F);   // ÒòÎªwarpAffineÖ»Ö§³Öfloat
+    KK.convertTo(K, CV_32F);   // å› ä¸ºwarpAffineåªæ”¯æŒfloat
 
     _MKi.resize(_N);
     int i;
@@ -79,7 +79,7 @@ bool CFilter::calculateStuctureTenser()
     int x, y;
 
     //////////////////////////////////////////////////////////////////////////
-    // Step 1: ¼ÆËã²î·Ö
+    // Step 1: è®¡ç®—å·®åˆ†
     // x, y derivative
     Mat_<Vec3d> img_dx, img_dy;
     Sobel(_Msrc, img_dx, CV_64F, 1, 0, CV_SCHARR, 1./16, 0, BORDER_REFLECT);
@@ -87,7 +87,7 @@ bool CFilter::calculateStuctureTenser()
 
 
     //////////////////////////////////////////////////////////////////////////
-    // Step 2: ¼ÆËã½á¹¹ÕÅÁ¿
+    // Step 2: è®¡ç®—ç»“æ„å¼ é‡
     // 1 -> dxx, 2 -> dxy, 3 -> dyy
     Mat_<Vec3d> tensor(_Msrc.size());
     for (y=0; y<_Msrc.rows; ++y)
@@ -99,13 +99,13 @@ bool CFilter::calculateStuctureTenser()
             tensor(y, x)[2] = img_dy(y, x).dot(img_dy(y, x));
         }
     }
-    // ÏßĞÔ½á¹¹ÕÅÁ¿
+    // çº¿æ€§ç»“æ„å¼ é‡
     Mat_<Vec3d> tensorBlur;
     GaussianBlur(tensor, tensorBlur, Size(), 2.0, 0, BORDER_REFLECT);
 
 
     //////////////////////////////////////////////////////////////////////////
-    // Step 3:¡¡Í¨¹ıÊı¾İÕÅÁ¿¹À¼ÆÏñËØ·½ÏòºÍ¸÷ÏîÒìĞÔ³Ì¶È
+    // Step 3:ã€€é€šè¿‡æ•°æ®å¼ é‡ä¼°è®¡åƒç´ æ–¹å‘å’Œå„é¡¹å¼‚æ€§ç¨‹åº¦
     // 1 -> local orientation, 2 -> anisotropy
     _Mest.create(tensor.size());
     Mat M(2, 2, CV_64FC1);
@@ -153,7 +153,7 @@ void CFilter::apply(const Mat &src, Mat &dest, float alpha/* = 1.0*/, float q /*
     _Mdest = dest;
     int i, j;
     Mat transM(2, 3, CV_64FC1);
-    Mat roi(2*_Ksize, 2*_Ksize, src.type());        // ´æ´¢´ÓÔ­Í¼Ïñ±ä»»µ½±ê×¼¿Õ¼äÉÏµÄÍ¼Ïñ¿é
+    Mat roi(2*_Ksize, 2*_Ksize, src.type());        // å­˜å‚¨ä»åŸå›¾åƒå˜æ¢åˆ°æ ‡å‡†ç©ºé—´ä¸Šçš„å›¾åƒå—
     double alphaX, radian;
     Vec2d estX;
     for (i=0; i<_Msrc.rows; ++i)
@@ -166,10 +166,10 @@ void CFilter::apply(const Mat &src, Mat &dest, float alpha/* = 1.0*/, float q /*
             transM = getTransformMatrix2D( Point2f(float(j)+0.5f, float(i)+0.5f),
                 Point2f(float(_Ksize), float(_Ksize)), radian, alphaX, 1./alphaX);
 
-            // ¼ÆËã±ê×¼¿Õ¼äÉÏµÄÍ¼Ïñ¿é
+            // è®¡ç®—æ ‡å‡†ç©ºé—´ä¸Šçš„å›¾åƒå—
             warpAffine(src, roi, transM, roi.size(), INTER_LINEAR, BORDER_REFLECT);
 
-            // ¼ÆËãÆ½¾ùÖµºÍ·½²î
+            // è®¡ç®—å¹³å‡å€¼å’Œæ–¹å·®
             calMeanAndStd2(roi);
 
             double sum_a_m, sum_a;

@@ -39,8 +39,8 @@ int main( int argc, char* argv[] )
         if (sendto(s, buf, BUFLEN, 0, (struct sockaddr*)&si_other, slen)==-1)
             diep("sendto()");
     }
-    
+
     close(s);
-            
+
     return 0;
 }

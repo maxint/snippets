@@ -35,7 +35,7 @@ int main( int argc, char* argv[] )
         fprintf ( stderr, "can't fork, error %d\n", errno );
         exit(EXIT_FALURE);
     }
-        
+
     return 0;
 }
 

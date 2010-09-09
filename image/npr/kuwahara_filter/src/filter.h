@@ -1,6 +1,6 @@
 // ======================================================================================
 // File         : filter.h
-// Author       : maxint <lnychina@gmail.com> 
+// Author       : maxint <lnychina@gmail.com>
 // Last Change  : 08/21/2010 | 21:52:42 PM | Saturday,August
 // Description  : CPU implementation of Anisotropic Kuwahara filtering
 //                Paper Home: http://www.kyprianidis.com/pg2009.html
@@ -24,17 +24,17 @@ public:
     ~CFilter(void);
 
 public:
-    // Ô¤´¦Àí£¬Éú³ÉÂË²¨·Ö¿é
+    // é¢„å¤„ç†ï¼Œç”Ÿæˆæ»¤æ³¢åˆ†å—
     void init(float s_r, float s_s, int N);
 
-    // Ó¦ÓÃKuwahara ÂË²¨
+    // åº”ç”¨Kuwahara æ»¤æ³¢
     void apply(const Mat &src, Mat &dest, float alpha = 1.0, float q = 8.0);
 
 private:
-    // ¼ÆËã½á¹¹ÕÅÁ¿£¬¹ÀÁ¿Ã¿¸öÏñËØµãµÄ±ß½ç·½ÏòºÍ¸÷ÏòÒìĞÔ³Ì¶È
+    // è®¡ç®—ç»“æ„å¼ é‡ï¼Œä¼°é‡æ¯ä¸ªåƒç´ ç‚¹çš„è¾¹ç•Œæ–¹å‘å’Œå„å‘å¼‚æ€§ç¨‹åº¦
     bool calculateStuctureTenser();
 
-    // Éú³ÉÒ»¸ö¸ßË¹¾ØÕó£¬°ë¾¶Îªradius£¬±ê×¼²îÎªsigmal
+    // ç”Ÿæˆä¸€ä¸ªé«˜æ–¯çŸ©é˜µï¼ŒåŠå¾„ä¸ºradiusï¼Œæ ‡å‡†å·®ä¸ºsigmal
     Matd createGaussianMatrix(int radius, double sigma1);
 
     void printMatrix(const Mat &m, const char* file);
@@ -46,18 +46,18 @@ private:
     Mat getTransformMatrix2D( Point2f center, Point2f offset, double radian = 0, double scale1 = 1, double scale2 = 1 );
 
 private:
-    int _N;                 // ÂË²¨ºË·Ö¿éÊı£¬¿ÉÈ¡4¡¢8¡¢16
-    double _segma_r;        // Á½¸öÓÃÀ´Ô¤´¦ÀíÂË²¨·Ö¿éµÄGaussianÂË²¨²ÎÊı
+    int _N;                 // æ»¤æ³¢æ ¸åˆ†å—æ•°ï¼Œå¯å–4ã€8ã€16
+    double _segma_r;        // ä¸¤ä¸ªç”¨æ¥é¢„å¤„ç†æ»¤æ³¢åˆ†å—çš„Gaussianæ»¤æ³¢å‚æ•°
     double _segma_s;
-    Mat _Msrc;              // Ô­Í¼Ïñ
-    Mat _Mdest;             // Ä¿±êÍ¼Ïñ
-    Mat_<Vec2d> _Mest;      // ¸÷ÏîÒìĞÔÂË²¨²ÎÊı¾ØÕó
+    Mat _Msrc;              // åŸå›¾åƒ
+    Mat _Mdest;             // ç›®æ ‡å›¾åƒ
+    Mat_<Vec2d> _Mest;      // å„é¡¹å¼‚æ€§æ»¤æ³¢å‚æ•°çŸ©é˜µ
 
-    vector<Vec3d> _meanK;   // ·Ö¿éµÄ¾ùÖµ
-    vector<Vec3d> _segma2K; // ·Ö¿éµÄ·½²î
+    vector<Vec3d> _meanK;   // åˆ†å—çš„å‡å€¼
+    vector<Vec3d> _segma2K; // åˆ†å—çš„æ–¹å·®
 
-    MatVec _MKi;            // Ô¤´¦ÀíºóµÄÂË²¨·Ö¿é
-    int _Ksize;             // ÂË²¨·Ö¿é´óĞ¡
+    MatVec _MKi;            // é¢„å¤„ç†åçš„æ»¤æ³¢åˆ†å—
+    int _Ksize;             // æ»¤æ³¢åˆ†å—å¤§å°
 };
 
 #endif//_FILTER_H_

@@ -6,20 +6,18 @@
 
 int main(int argc, char* argv[])
 {
-	QApplication app(argc, argv);
-	MailSender mailSender;
-	mailSender.show();
-	mailSender.setHostName("zjuem.zju.edu.cn");
-	mailSender.setPort(25);
-	mailSender.setUsername("bWF4aW50", true);
-	mailSender.setPassword("Y2hpbmE=", true);
-	mailSender.setDefaultTo("lnychina@gmail.com");
-	mailSender.setMailContentFile("test.html");
-	//mailSender.setMailContentFile("main.cpp");
-	//mailSender.addAttachment("facelift.flv");
-	mailSender.addAttachment("f:\\mac.png");
-	//mailSender.addAttachment("f:\\mac02.png");
-	//mailSender.addAttachment("test.html");
+    QApplication app(argc, argv);
+    MailSender mailSender;
+    mailSender.show();
+    mailSender.setHostName("smtp.example.com");
+    mailSender.setPort(25);
+    mailSender.setUsername("foo");
+    mailSender.setPassword("bar");
+    mailSender.setSender("sender_name");
+    mailSender.setFrom("from@example.com")
+    mailSender.setDefaultTo("to@example.com");
+    mailSender.setMailContentFile("test.html");
+    mailSender.addAttachment("f:\\mac.png");
 
-	return app.exec();
+    return app.exec();
 }

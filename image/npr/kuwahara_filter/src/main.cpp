@@ -1,6 +1,6 @@
 // ======================================================================================
 // File         : main.cpp
-// Author       : maxint <lnychina@gmail.com> 
+// Author       : maxint <lnychina@gmail.com>
 // Last Change  : 08/21/2010 | 21:52:25 PM | Saturday,August
 // Description  : CPU implementation of Anisotropic Kuwahara filtering
 //                Paper Home: http://www.kyprianidis.com/pg2009.html
@@ -40,7 +40,7 @@ int main(int argc, char* argv[])
         return -1;
 
     //////////////////////////////////////////////////////////////////////////
-    // KuwaharaÂË²¨
+    // Kuwaharaæ»¤æ³¢
     CFilter filter;
     filter.init(segma_r, segma_s, N);
     Mat res;
@@ -49,13 +49,13 @@ int main(int argc, char* argv[])
 
 
     //////////////////////////////////////////////////////////////////////////
-    // ¸ßË¹ÂË²¨£¬ÓÃÓÚ¶Ô±È
+    // é«˜æ–¯æ»¤æ³¢ï¼Œç”¨äºŽå¯¹æ¯”
     Mat img_g;
     GaussianBlur(img, img_g, Size(), 2.0);
 
 
     //////////////////////////////////////////////////////////////////////////
-    // ÏÔÊ¾½á¹û
+    // æ˜¾ç¤ºç»“æžœ
     namedWindow("Kuwahera", CV_WINDOW_AUTOSIZE);
     imshow("Kuwahera", res);
 

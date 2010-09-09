@@ -5,8 +5,8 @@ VERSION =	1.3
 
 #CFLAGS =	-Wall -g -O2 $(INCLUDE) -MD `Sockets-config`
 
-INCLUDE = 
-CFLAGS = 
+INCLUDE =
+CFLAGS =
 CPPFLAGS =	$(CFLAGS)
 
 LIBS =
@@ -21,10 +21,10 @@ dig:		dig.o
 
 udpserver:	udpserver.c
 		gcc -o $@ $^ $(LIBS)
-		
+
 udpclient:	udpclient.c
 		gcc -o $@ $^ $(LIBS)
-		
+
 clean:
 		rm -f $(PROGS)
 

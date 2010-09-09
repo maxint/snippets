@@ -121,7 +121,7 @@ int main(int argc, char *argv[])
                   hostPtr->h_addr,
                   hostPtr->h_length);
     printf ( "%s\n", hostname );
-    
+
 
     /*
      * to allow server be contactable on any of

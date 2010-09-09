@@ -18,17 +18,17 @@ const CvScalar FD_FLAG_COLOR = {0,0,255,255};
 
 int main( int argc, char* argv[] )
 {
-	IplImage		*img = NULL;
+    IplImage        *img = NULL;
 
-	img = cvLoadImage("lena.jpg", CV_LOAD_IMAGE_COLOR);
+    img = cvLoadImage("lena.jpg", CV_LOAD_IMAGE_COLOR);
 
-	cvNamedWindow(WIN_NAME, CV_WINDOW_AUTOSIZE);
-	cvShowImage(WIN_NAME, img);
+    cvNamedWindow(WIN_NAME, CV_WINDOW_AUTOSIZE);
+    cvShowImage(WIN_NAME, img);
 
-	cvWaitKey(0);
+    cvWaitKey(0);
 
-	cvDestroyWindow(WIN_NAME);
-	cvReleaseImage(&img);
+    cvDestroyWindow(WIN_NAME);
+    cvReleaseImage(&img);
 
-	return 0;
+    return 0;
 }
