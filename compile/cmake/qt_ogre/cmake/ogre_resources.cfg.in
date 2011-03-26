@@ -1,0 +1,20 @@
+# Resources required by the sample browser and most samples.
+# Resources required by the sample browser and most samples.
+[Essential]
+#Zip=@OGRE_MEDIA_DIR@/packs/SdkTrays.zip
+
+# Common sample resources needed by many of the samples.
+# Rarely used resources should be separately loaded by the
+# samples which require them.
+[Popular]
+Zip=@OGRE_MEDIA_DIR@/packs/cubemap.zip
+Zip=@OGRE_MEDIA_DIR@/packs/cubemapsJS.zip
+Zip=@OGRE_MEDIA_DIR@/packs/skybox.zip
+
+[General]
+FileSystem=@OGRE_MEDIA_DIR@
+FileSystem=@OGRE_MEDIA_DIR@/fonts
+Zip=@OGRE_MEDIA_DIR@/packs/OgreCore.zip
+
+[Custom]
+FileSystem=../../media

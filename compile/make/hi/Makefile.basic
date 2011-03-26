@@ -1,0 +1,4 @@
+all: hi
+
+hi: main.cpp
+	g++ -Wall -o hi.exe main.cpp

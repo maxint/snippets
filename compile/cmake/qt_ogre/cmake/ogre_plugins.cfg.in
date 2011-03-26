@@ -1,0 +1,23 @@
+# Defines plugins to load
+
+# Define plugin folder
+PluginFolder=@OGRE_BIN_DIR@
+
+# Define plugins
+ Plugin=RenderSystem_Direct3D9@OGRE_DEBUG_POSTFIX@
+ Plugin=RenderSystem_GL@OGRE_DEBUG_POSTFIX@
+ Plugin=Plugin_OctreeSceneManager@OGRE_DEBUG_POSTFIX@
+
+####################
+# Plugins rarely used
+####################
+
+# Plugin=RenderSystemirect3D10@OGRE_DEBUG_POSTFIX@
+# Plugin=RenderSystemirect3D11@OGRE_DEBUG_POSTFIX@
+
+# Plugin=RenderSystem_GLES@OGRE_DEBUG_POSTFIX@
+# Plugin=Plugin_ParticleFX@OGRE_DEBUG_POSTFIX@
+# Plugin=Plugin_BSPSceneManager@OGRE_DEBUG_POSTFIX@
+# Plugin=Plugin_CgProgramManager@OGRE_DEBUG_POSTFIX@
+# Plugin=Plugin_PCZSceneManager@OGRE_DEBUG_POSTFIX@
+# Plugin=Plugin_OctreeZone@OGRE_DEBUG_POSTFIX@
