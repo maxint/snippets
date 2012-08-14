@@ -1,3 +1,0 @@
-glob:*.exe
-syntax: regexp
-([Dd]ebug|[Rr]elease)

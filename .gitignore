@@ -1,0 +1,5 @@
+*.exe
+[Dd]ebug
+[Rr]elease
+
+*.asv
