@@ -2,28 +2,28 @@
 #include <highgui.h>
 #include <stdio.h>
 
-#ifndef _DEBUG
-#pragma comment(lib, "cxcore210.lib")
-#pragma comment(lib, "cv210.lib")
-#pragma comment(lib, "highgui210.lib")
-#else
-#pragma comment(lib, "cxcore210.lib")
-#pragma comment(lib, "cv210.lib")
-#pragma comment(lib, "highgui210.lib")
-#endif
+#pragma comment(lib, "cxcore.lib")
+#pragma comment(lib, "cv.lib")
+#pragma comment(lib, "highgui.lib")
 
 #define SL_EPS 0.0001f
 
 const char WIN_NAME[] = "Lena";
 const char WIN_NAME_WARPED[] = "Wrapped";
-const CvScalar FD_FLAG_COLOR = {0,0,255,255};
+const CvScalar FD_FLAG_COLOR = {255,0,0,255};
 
-const int TRI_NUM = 3;
-const CvPoint2D64d TRI_ARR1[] = {{0.1,0.1}, {0.5,0.5}, {0.1,1}}; // v1, v2, v3
+const int TRI_NUM = 4;
+const CvPoint2D64d TRI_ARR1[] = {
+	{0,0}, {0.5,0.5}, {1,0},
+	{1,0}, {0.5,0.5}, {1,1},
+	{1,1}, {0.5,0.5}, {0,1},
+	{0,1}, {0.5,0.5}, {0,0},
+}; // v1, v2, v3
 const CvPoint2D64d TRI_ARR2[] = {
-    {0.8,0.8}, {0.15,0.8}, {0.5,0.5},
-    {0.5,0.5},{0.15,0.8}, {0.2,0.2},
-    {0.5,0.2},{0.8,0.8}, {0,0}
+	{0,0}, {0.5,0.8}, {1,0},
+	{1,0}, {0.5,0.8}, {1,1},
+	{1,1}, {0.5,0.8}, {0,1},
+	{0,1}, {0.5,0.8}, {0,0},
 }; // v1', v2', v3'
 
 void scanline_fill(int y, int l, int r, const double *aff_mat, const CvPoint2D64d tri1[],
@@ -48,23 +48,37 @@ int main( int argc, char* argv[] )
     img = cvLoadImage("lena.jpg", CV_LOAD_IMAGE_COLOR);
     imgWrapped = cvCreateImage(cvGetSize(img), img->depth, img->nChannels);
 
-    for (i=0; i<3; ++i)
-    {
-        tri1[i].x = TRI_ARR1[i].x*(img->width-1);
-        tri1[i].y = TRI_ARR1[i].y*(img->height-1);
-        pts[i].x = (int)(tri1[i].x+0.5f);
-        pts[i].y = (int)(tri1[i].y+0.5f);
-    }
-    //cvPolyLine(img, ptsa, npts, 1, 1, FD_FLAG_COLOR, 2, 8, 0);
-
     for (k=0; k<TRI_NUM; ++k)
     {
         for (i=0; i<3; ++i)
         {
+			tri1[i].x = TRI_ARR1[k*3+i].x*(img->width-1);
+			tri1[i].y = TRI_ARR1[k*3+i].y*(img->height-1);
+
+			//pts[i].x = (int)(tri1[i].x+0.5f);
+			//pts[i].y = (int)(tri1[i].y+0.5f);
+
             tri2[i].x = TRI_ARR2[k*3+i].x*(img->width-1);
             tri2[i].y = TRI_ARR2[k*3+i].y*(img->height-1);
         }
         triangle_warping(tri1, tri2, img, imgWrapped);
+		//cvPolyLine(imgWrapped, ptsa, npts, 1, 1, FD_FLAG_COLOR, 2, 8, 0);
+    }
+
+    for (k=0; k<TRI_NUM; ++k)
+    {
+        for (i=0; i<3; ++i)
+        {			
+			pts[i].x = (int)(TRI_ARR1[k*3+i].x*(img->width-1)+0.5f);
+			pts[i].y = (int)(TRI_ARR1[k*3+i].y*(img->height-1)+0.5f);
+        }
+		cvPolyLine(img, ptsa, npts, 1, 1, FD_FLAG_COLOR, 2, 8, 0);
+        for (i=0; i<3; ++i)
+        {			
+			pts[i].x = (int)(TRI_ARR2[k*3+i].x*(img->width-1)+0.5f);
+			pts[i].y = (int)(TRI_ARR2[k*3+i].y*(img->height-1)+0.5f);
+        }
+		cvPolyLine(imgWrapped, ptsa, npts, 1, 1, FD_FLAG_COLOR, 2, 8, 0);
     }
 
     cvNamedWindow(WIN_NAME, CV_WINDOW_AUTOSIZE);
@@ -74,7 +88,7 @@ int main( int argc, char* argv[] )
 
     cvWaitKey(0);
 
-    cvSaveImage("tmp.png", imgWrapped, 0);
+    cvSaveImage("tmp.png", imgWrapped);
 
     cvDestroyWindow(WIN_NAME);
     cvDestroyWindow(WIN_NAME_WARPED);
