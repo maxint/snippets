@@ -37,14 +37,6 @@ Thanks to:
 */
 /////////////////////////////////////////////////////////
 
-
-
-#include <stdlib.h>
-#include <stdio.h>
-#include <math.h>
-#include <string.h>
-#include <wchar.h>
-
 //this is for TryEnterCriticalSection
 #ifndef _WIN32_WINNT
 	#   define _WIN32_WINNT 0x400
@@ -173,74 +165,11 @@ typedef _AMMediaType AM_MEDIA_TYPE;
 //don't touch
 static int comInitCount = 0;
 
+class videoDevice;
 
-////////////////////////////////////////   VIDEO DEVICE   ///////////////////////////////////
-
-class videoDevice{
-
-	
-	public:
-		 
-		videoDevice();
-		~videoDevice();
-		void setSize(int w, int h);
-		void NukeDownstream(IBaseFilter *pBF);
-		void destroyGraph();
-		bool play();
-		bool pause();
-		bool isPlaying();
-		
-		int videoSize;
-		int width;
-		int height;
-		int tryWidth;
-		int tryHeight;
-		
-		ICaptureGraphBuilder2 *pCaptureGraph;	// Capture graph builder object
-		IGraphBuilder *pGraph;					// Graph builder object
-	    IMediaControl *pControl;				// Media control object
-		IBaseFilter *pVideoInputFilter;  		// Video Capture filter
-		IBaseFilter *pGrabberF;
-		IBaseFilter * pDestFilter;
-		IAMStreamConfig *streamConf;
-		ISampleGrabber * pGrabber;    			// Grabs frame
-		AM_MEDIA_TYPE * pAmMediaType;
-		
-		IMediaEventEx * pMediaEvent;
-		
-		GUID videoType;
-		long formatType;
-		
-		SampleGrabberCallback * sgCallback;				
-		
-		bool tryDiffSize;
-		bool useCrossbar;
-		bool readyToCapture;
-		bool sizeSet;
-		bool setupStarted;
-		bool specificFormat;
-		bool autoReconnect;
-		int  nFramesForReconnect;
-		unsigned long nFramesRunning;
-		int  connection;
-		int	 storeConn;
-		int  myID;
-		long requestedFrameTime; //ie fps
-		
-		char 	nDeviceName[255];
-		WCHAR 	wDeviceName[255];
-		
-		unsigned char * pixels;
-		char * pBuffer;
-
-};
-
-
-
+typedef void (*NewFrameProc)(unsigned char* buffers, void* params);
 
 //////////////////////////////////////   VIDEO INPUT   /////////////////////////////////////
-
-
 
 class videoInput{
 
@@ -258,10 +187,13 @@ class videoInput{
 		static char * getDeviceName(int deviceID);
 		
 		//choose to use callback based capture - or single threaded
-		void setUseCallback(bool useCallback);	
+		void setUseCallback(bool useCallback);
+
+        //Set callback function called when new frame come. (Multithreading)
+        void setFrameCallback(int deviceID, NewFrameProc cb, void* params);
 		
 		//call before setupDevice
-		//directshow will try and get the closest possible framerate to what is requested
+		//directshow will try and get the closest possible frame rate to what is requested
 		void setIdealFramerate(int deviceID, int idealFramerate);
 
 		//some devices will stop delivering frames after a while - this method gives you the option to try and reconnect
@@ -274,13 +206,13 @@ class videoInput{
 		bool setupDevice(int deviceID, int w, int h);
 
 		//These two are only for capture cards
-		//USB and Firewire cameras souldn't specify connection 
+		//USB and Firewire cameras shouldn't specify connection 
 		bool setupDevice(int deviceID, int connection);	
 		bool setupDevice(int deviceID, int w, int h, int connection); 
 		
 		//If you need to you can set your NTSC/PAL/SECAM
 		//preference here. if it is available it will be used.
-		//see #defines above for available formats - eg VI_NTSC_M or VI_PAL_B
+		//see #defines above for available formats - e.g. VI_NTSC_M or VI_PAL_B
 		//should be called after setupDevice
 		//can be called multiple times
 		bool setFormat(int deviceNumber, int format);	
@@ -326,6 +258,7 @@ class videoInput{
 		//as above but then sets it up with same settings
 		bool restartDevice(int deviceID);
 		
+private:
 		//number of devices available
 		int  devicesFound;
 		
@@ -347,7 +280,6 @@ class videoInput{
 		long propExposure;
 		long propIris;
 		long propFocus;
-				
 		
 	private:		
 		void setPhyCon(int deviceID, int conn);                   
@@ -378,7 +310,7 @@ class videoInput{
 		GUID MEDIASUBTYPE_Y8;
 		GUID MEDIASUBTYPE_GREY;
 
-		videoDevice * VDList[VI_MAX_CAMERAS];
+		videoDevice* VDList[VI_MAX_CAMERAS];
 		GUID mediaSubtypes[VI_NUM_TYPES];
 		long formatTypes[VI_NUM_FORMATS];
 

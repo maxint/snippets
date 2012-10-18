@@ -10,17 +10,18 @@
 //#define _DEBUG 1
 
 #include "videoInput.h"
-#include "tchar.h"
 
 //Include Directshow stuff here so we don't worry about needing all the h files.
-#include "DShow.h"
-#include "streams.h"
-#include "qedit.h"
-#include "vector"
-#include "Aviriff.h"
-#include  "Windows.h"
+#include <dshow.h>
+#include <streams.h>
+#include <qedit.h>
 
-//for threading
+#include <Aviriff.h> //FFC
+
+#include <vector>
+#include <tchar.h>
+
+//for threading (use _beginthreadex instead of CreateThread)
 #include <process.h>
 
 ///////////////////////////  HANDY FUNCTIONS  /////////////////////////////
@@ -34,7 +35,7 @@ void MyFreeMediaType(AM_MEDIA_TYPE& mt){
     }
     if (mt.pUnk != NULL)
     {
-        // Unecessary because pUnk should not be used, but safest.
+        // Unnecessary because pUnk should not be used, but safest.
         mt.pUnk->Release();
         mt.pUnk = NULL;
     }
@@ -65,7 +66,10 @@ public:
 		newFrame			= false;
 		latestBufferLength 	= 0;
 		
-		hEvent = CreateEvent(NULL, true, false, NULL);
+        hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+
+        frameProc           = NULL;
+        cbParam             = NULL;
 	}
 
 
@@ -120,14 +124,15 @@ public:
 				EnterCriticalSection(&critSection);
 	      			memcpy(pixels, ptrBuffer, latestBufferLength);	
 					newFrame	= true;
-					freezeCheck = 1;
+                    freezeCheck = 1;
 				LeaveCriticalSection(&critSection);
-				SetEvent(hEvent);
+                SetEvent(hEvent);
+                if (frameProc) (*frameProc)(pixels, cbParam);
 			}else{
 				printf("ERROR: SampleCB() - buffer sizes do not match\n");
 			}
 		}
-						
+
 		return S_OK;
     }
     
@@ -146,8 +151,72 @@ public:
 	unsigned char * pixels;
 	unsigned char * ptrBuffer;
 	CRITICAL_SECTION critSection;
-	HANDLE hEvent;	
+    HANDLE hEvent;
+
+    NewFrameProc frameProc;
+    void* cbParam;
 };
+
+
+////////////////////////////////////////   VIDEO DEVICE   ///////////////////////////////////
+
+class videoDevice{
+
+public:
+
+    videoDevice();
+    ~videoDevice();
+    void setSize(int w, int h);
+    void NukeDownstream(IBaseFilter *pBF);
+    void destroyGraph();
+    bool play();
+    bool pause();
+    bool isPlaying();
+
+    int videoSize;
+    int width;
+    int height;
+    int tryWidth;
+    int tryHeight;
+
+    ICaptureGraphBuilder2 *pCaptureGraph;	// Capture graph builder object
+    IGraphBuilder *pGraph;					// Graph builder object
+    IMediaControl *pControl;				// Media control object
+    IBaseFilter *pVideoInputFilter;  		// Video Capture filter
+    IBaseFilter *pGrabberF;
+    IBaseFilter * pDestFilter;
+    IAMStreamConfig *streamConf;
+    ISampleGrabber * pGrabber;    			// Grabs frame
+    AM_MEDIA_TYPE * pAmMediaType;
+
+    IMediaEventEx * pMediaEvent;
+
+    GUID videoType;
+    long formatType;
+
+    SampleGrabberCallback * sgCallback;
+
+    bool tryDiffSize;
+    bool useCrossbar;
+    bool readyToCapture;
+    bool sizeSet;
+    bool setupStarted;
+    bool specificFormat;
+    bool autoReconnect;
+    int  nFramesForReconnect;
+    unsigned long nFramesRunning;
+    int  connection;
+    int	 storeConn;
+    int  myID;
+    long requestedFrameTime; //ie fps
+
+    char 	nDeviceName[255];
+    WCHAR 	wDeviceName[255];
+
+    unsigned char * pixels;
+    char * pBuffer;
+};
+
 
 
 //////////////////////////////  VIDEO DEVICE  ////////////////////////////////
@@ -159,47 +228,46 @@ public:
 
 videoDevice::videoDevice(){
 		
-		 pCaptureGraph      = NULL;	// Capture graph builder object
-		 pGraph             = NULL;	// Graph builder object
-	     pControl           = NULL;	// Media control object
-		 pVideoInputFilter  = NULL; // Video Capture filter
-		 pGrabber           = NULL; // Grabs frame
-		 pDestFilter 		= NULL; // Null Renderer Filter
-		 pGrabberF 			= NULL; // Grabber Filter
-		 pMediaEvent		= NULL; 
-		 streamConf			= NULL;
-		 pAmMediaType		= NULL;
+	pCaptureGraph       = NULL;	// Capture graph builder object
+	pGraph              = NULL;	// Graph builder object
+	pControl            = NULL;	// Media control object
+	pVideoInputFilter   = NULL; // Video Capture filter
+	pGrabber            = NULL; // Grabs frame
+	pDestFilter 		= NULL; // Null Renderer Filter
+	pGrabberF 			= NULL; // Grabber Filter
+	pMediaEvent		    = NULL; 
+	streamConf			= NULL;
+	pAmMediaType		= NULL;
 		 
-		 //This is our callback class that processes the frame.
-		 sgCallback			= new SampleGrabberCallback();
-		 sgCallback->newFrame = false;
+	//This is our callback class that processes the frame.
+	sgCallback			= new SampleGrabberCallback();
+	sgCallback->newFrame = false;
 
-		 //Default values for capture type
-		 videoType 			= MEDIASUBTYPE_RGB24;
-	     connection     	= PhysConn_Video_Composite;
-		 storeConn			= 0;
+	//Default values for capture type
+	videoType 			= MEDIASUBTYPE_RGB24;
+	connection     	    = PhysConn_Video_Composite;
+	storeConn			= 0;
 		 
-		 videoSize 			= 0;
-	     width     			= 0;
-	     height    			= 0;
-	     tryWidth			= 0;
-	     tryHeight			= 0;
-		 nFramesForReconnect= 10000;
-		 nFramesRunning     = 0;
-	     myID				= -1;
+	videoSize 			= 0;
+	width     			= 0;
+	height    			= 0;
+	tryWidth			= 0;
+	tryHeight			= 0;
+	nFramesForReconnect= 10000;
+	nFramesRunning     = 0;
+	myID				= -1;
 	     
-	     tryDiffSize     	= false;
-	     useCrossbar     	= false;
-		 readyToCapture  	= false;
-		 sizeSet			= false;
-		 setupStarted		= false;
-		 specificFormat		= false;
-		 autoReconnect		= false;
-		 requestedFrameTime = -1;
+	tryDiffSize     	= false;
+	useCrossbar     	= false;
+	readyToCapture  	= false;
+	sizeSet			= false;
+	setupStarted		= false;
+	specificFormat		= false;
+	autoReconnect		= false;
+	requestedFrameTime = -1;
 		 
-		 memset(wDeviceName, 0, sizeof(WCHAR) * 255);
-		 memset(nDeviceName, 0, sizeof(char) * 255);
-	     
+	memset(wDeviceName, 0, sizeof(WCHAR) * 255);
+	memset(nDeviceName, 0, sizeof(char) * 255);	     
 }
 
 
@@ -263,39 +331,39 @@ bool videoDevice::isPlaying() {
 // ---------------------------------------------------------------------- 
 
 void videoDevice::NukeDownstream(IBaseFilter *pBF){
-        IPin *pP, *pTo;
-        ULONG u;
-        IEnumPins *pins = NULL;
-        PIN_INFO pininfo;
-        HRESULT hr = pBF->EnumPins(&pins);
-        pins->Reset();
-        while (hr == NOERROR)
+    IPin *pP, *pTo;
+    ULONG u;
+    IEnumPins *pins = NULL;
+    PIN_INFO pininfo;
+    HRESULT hr = pBF->EnumPins(&pins);
+    pins->Reset();
+    while (hr == NOERROR)
+    {
+        hr = pins->Next(1, &pP, &u);
+        if (hr == S_OK && pP)
         {
-                hr = pins->Next(1, &pP, &u);
-                if (hr == S_OK && pP)
+            pP->ConnectedTo(&pTo);
+            if (pTo)
+            {
+                hr = pTo->QueryPinInfo(&pininfo);
+                if (hr == NOERROR)
                 {
-                        pP->ConnectedTo(&pTo);
-                        if (pTo)
-                        {
-                                hr = pTo->QueryPinInfo(&pininfo);
-                                if (hr == NOERROR)
-                                {
-                                        if (pininfo.dir == PINDIR_INPUT)
-                                        {
-                                                NukeDownstream(pininfo.pFilter);
-                                                pGraph->Disconnect(pTo);
-                                                pGraph->Disconnect(pP);
-                                                pGraph->RemoveFilter(pininfo.pFilter);
-                                        }
-                                        pininfo.pFilter->Release();
-										pininfo.pFilter = NULL;
-                                }
-                                pTo->Release();
-                        }
-                        pP->Release();
+                    if (pininfo.dir == PINDIR_INPUT)
+                    {
+                        NukeDownstream(pininfo.pFilter);
+                        pGraph->Disconnect(pTo);
+                        pGraph->Disconnect(pP);
+                        pGraph->RemoveFilter(pininfo.pFilter);
+                    }
+                    pininfo.pFilter->Release();
+                    pininfo.pFilter = NULL;
                 }
+                pTo->Release();
+            }
+            pP->Release();
         }
-        if (pins) pins->Release();
+    }
+    if (pins) pins->Release();
 } 
 
 
@@ -525,7 +593,7 @@ videoInput::videoInput(){
 	formatTypes[VI_NTSC_M]		= AnalogVideo_NTSC_M;
 	formatTypes[VI_NTSC_M_J]	= AnalogVideo_NTSC_M_J;
 	formatTypes[VI_NTSC_433]	= AnalogVideo_NTSC_433;
-		
+	
 	formatTypes[VI_PAL_B]		= AnalogVideo_PAL_B;
 	formatTypes[VI_PAL_D]		= AnalogVideo_PAL_D;
 	formatTypes[VI_PAL_G]		= AnalogVideo_PAL_G;
@@ -562,7 +630,6 @@ videoInput::videoInput(){
 	propExposure   				= CameraControl_Exposure;
 	propIris					= CameraControl_Iris;
 	propFocus					= CameraControl_Focus;
-						
 }
 
 
@@ -918,8 +985,7 @@ bool videoInput::getPixels(int id, unsigned char * dstBuffer, bool flipRedAndBlu
 			
 			success = true;
 			
-		}
-		else{	
+		}else{
 			//regular capture method
 			long bufferSize = VDList[id]->videoSize;
 			HRESULT hr = VDList[id]->pGrabber->GetCurrentBuffer(&bufferSize, (long *)VDList[id]->pBuffer);
@@ -976,7 +1042,7 @@ bool videoInput::isFrameNew(int id){
 	EnterCriticalSection(&VDList[id]->sgCallback->critSection);
 		result = VDList[id]->sgCallback->newFrame;
 
-		//we need to give it some time at the begining to start up so lets check after 400 frames
+		//we need to give it some time at the beginning to start up so lets check after 400 frames
 		if(VDList[id]->nFramesRunning > 400 && VDList[id]->sgCallback->freezeCheck > VDList[id]->nFramesForReconnect ){
 			freeze = true;
 		}
@@ -1581,28 +1647,28 @@ void videoInput::processPixels(unsigned char * src, unsigned char * dst, int wid
 //------------------------------------------------------------------------------------------
 void videoInput::getMediaSubtypeAsString(GUID type, char * typeAsString){
 
-	char tmpStr[8];
-	if( type == MEDIASUBTYPE_RGB24) sprintf(tmpStr, "RGB24");
-	else if(type == MEDIASUBTYPE_RGB32) sprintf(tmpStr, "RGB32");
-	else if(type == MEDIASUBTYPE_RGB555)sprintf(tmpStr, "RGB555");
-	else if(type == MEDIASUBTYPE_RGB565)sprintf(tmpStr, "RGB565");					
-	else if(type == MEDIASUBTYPE_YUY2) 	sprintf(tmpStr, "YUY2");
-	else if(type == MEDIASUBTYPE_YVYU) 	sprintf(tmpStr, "YVYU");
-	else if(type == MEDIASUBTYPE_YUYV) 	sprintf(tmpStr, "YUYV");
-	else if(type == MEDIASUBTYPE_IYUV) 	sprintf(tmpStr, "IYUV");
-	else if(type == MEDIASUBTYPE_UYVY)  sprintf(tmpStr, "UYVY");
-	else if(type == MEDIASUBTYPE_YV12)  sprintf(tmpStr, "YV12");
-	else if(type == MEDIASUBTYPE_YVU9)  sprintf(tmpStr, "YVU9");
-	else if(type == MEDIASUBTYPE_Y411) 	sprintf(tmpStr, "Y411");
-	else if(type == MEDIASUBTYPE_Y41P) 	sprintf(tmpStr, "Y41P");
-	else if(type == MEDIASUBTYPE_Y211)  sprintf(tmpStr, "Y211");
-	else if(type == MEDIASUBTYPE_AYUV) 	sprintf(tmpStr, "AYUV");
-	else if(type == MEDIASUBTYPE_Y800) 	sprintf(tmpStr, "Y800");  
-	else if(type == MEDIASUBTYPE_Y8)   	sprintf(tmpStr, "Y8");  
-	else if(type == MEDIASUBTYPE_GREY) 	sprintf(tmpStr, "GREY");  
-	else sprintf(tmpStr, "OTHER");
+    char *tmpStr = "OTHER";
 
-	memcpy(typeAsString, tmpStr, sizeof(char)*8);
+    if(type == MEDIASUBTYPE_RGB24)      tmpStr = "RGB24";
+    else if(type == MEDIASUBTYPE_RGB32) tmpStr = "RGB32";
+    else if(type == MEDIASUBTYPE_RGB555)tmpStr = "RGB555";
+    else if(type == MEDIASUBTYPE_RGB565)tmpStr = "RGB565";					
+    else if(type == MEDIASUBTYPE_YUY2) 	tmpStr = "YUY2";
+    else if(type == MEDIASUBTYPE_YVYU) 	tmpStr = "YVYU";
+    else if(type == MEDIASUBTYPE_YUYV) 	tmpStr = "YUYV";
+    else if(type == MEDIASUBTYPE_IYUV) 	tmpStr = "IYUV";
+    else if(type == MEDIASUBTYPE_UYVY)  tmpStr = "UYVY";
+    else if(type == MEDIASUBTYPE_YV12)  tmpStr = "YV12";
+    else if(type == MEDIASUBTYPE_YVU9)  tmpStr = "YVU9";
+    else if(type == MEDIASUBTYPE_Y411) 	tmpStr = "Y411";
+    else if(type == MEDIASUBTYPE_Y41P) 	tmpStr = "Y41P";
+    else if(type == MEDIASUBTYPE_Y211)  tmpStr = "Y211";
+    else if(type == MEDIASUBTYPE_AYUV) 	tmpStr = "AYUV";
+    else if(type == MEDIASUBTYPE_Y800) 	tmpStr = "Y800";  
+    else if(type == MEDIASUBTYPE_Y8)   	tmpStr = "Y8";  
+    else if(type == MEDIASUBTYPE_GREY) 	tmpStr = "GREY";
+
+	strcpy(typeAsString, tmpStr);
 }
 
 //-------------------------------------------------------------------------------------------
@@ -2438,4 +2504,11 @@ HRESULT videoInput::routeCrossbar(ICaptureGraphBuilder2 **ppBuild, IBaseFilter *
 	
 	return hr;
 }
-   
+
+void videoInput::setFrameCallback( int deviceID, NewFrameProc cb, void* params )
+{
+    if(deviceID >= VI_MAX_CAMERAS) return;
+
+    VDList[deviceID]->sgCallback->frameProc = cb;
+    VDList[deviceID]->sgCallback->cbParam = params;
+}
