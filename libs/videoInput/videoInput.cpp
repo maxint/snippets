@@ -6,8 +6,8 @@
 //OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //THE SOFTWARE.
 
-#define DEBUG 1
-#define _DEBUG 1
+//#define DEBUG 1
+//#define _DEBUG 1
 
 #include "videoInput.h"
 #include "tchar.h"
@@ -227,6 +227,35 @@ void videoDevice::setSize(int w, int h){
 	}
 }
 
+// ----------------------------------------------------------------------
+// Play / Pause and query
+// ----------------------------------------------------------------------
+bool videoDevice::play() {
+	if (!pControl)
+		return false;
+
+	HRESULT hr = pControl->Run();
+	return SUCCEEDED(hr);
+}
+
+bool videoDevice::pause() {
+	if (!pControl)
+		return false;
+
+	HRESULT hr = pControl->Pause();
+	if (FAILED(hr)) return false;
+	hr = pControl->StopWhenReady();
+	return SUCCEEDED(hr);
+}
+
+bool videoDevice::isPlaying() {
+	if (!pControl)
+		return false;
+
+	OAFilterState fs;
+	pControl->GetState(INFINITE, &fs);
+	return (fs == State_Running);
+}
 
 // ---------------------------------------------------------------------- 
 //	Borrowed from the SDK, use it to take apart the graph from 	                                                
@@ -982,9 +1011,32 @@ bool videoInput::isDeviceSetup(int id){
 	
 	if(id<devicesFound && VDList[id]->readyToCapture)return true;
 	else return false;
-
 }
 
+bool videoInput::play(int deviceID) {
+	if (isDeviceSetup(deviceID)) {
+		return VDList[deviceID]->play();
+	} else {
+		return false;
+	}
+}
+
+bool videoInput::pause(int deviceID) {
+	if (isDeviceSetup(deviceID)) {
+		return VDList[deviceID]->pause();
+	} else {
+		return false;
+	}
+}
+
+bool videoInput::isPlaying(int deviceID)
+{
+	if (isDeviceSetup(deviceID)) {
+		return VDList[deviceID]->isPlaying();
+	} else {
+		return false;
+	}
+}
 
 // ---------------------------------------------------------------------- 
 // Gives us a little pop up window to adjust settings           
@@ -1921,6 +1973,7 @@ int videoInput::start(int deviceID, videoDevice *VD){
 		stopDevice(deviceID);
 		return S_FALSE;
 	}
+    //printf("1\n");
 
 
 	//NULL RENDERER//
@@ -1939,6 +1992,7 @@ int videoInput::start(int deviceID, videoDevice *VD){
 		return hr;
 	}
 	
+    //printf("2\n");
 	//RENDER STREAM//
 	//This is where the stream gets put together. 
 	hr = VD->pCaptureGraph->RenderStream(&PIN_CATEGORY_PREVIEW, &MEDIATYPE_Video, VD->pVideoInputFilter, VD->pGrabberF, VD->pDestFilter);	
@@ -1963,6 +2017,7 @@ int videoInput::start(int deviceID, videoDevice *VD){
 	}
 
 
+    //printf("3\n");
 	//LETS RUN THE STREAM!
 	hr = VD->pControl->Run();
 
@@ -1972,18 +2027,68 @@ int videoInput::start(int deviceID, videoDevice *VD){
 		 return hr;
 	}
 	
-	
+    //printf("4\n");
 	//MAKE SURE THE DEVICE IS SENDING VIDEO BEFORE WE FINISH
-	if(!bCallback){
-		
-		long bufferSize = VD->videoSize;
-		
+	if(!bCallback){		
+		long bufferSize = VD->videoSize;		
 		while( hr != S_OK){
 			hr = VD->pGrabber->GetCurrentBuffer(&bufferSize, (long *)VD->pBuffer);
 			Sleep(10);
 		}
-	
-	}
+    }
+
+    // Disable auto-focus
+    IAMCameraControl *pCameraControl; 
+    hr = VD->pVideoInputFilter->QueryInterface(IID_IAMCameraControl, (void **)&pCameraControl); 
+    if (SUCCEEDED(hr)) {
+        long minValue;
+        long maxValue;
+        long minStep;
+        long capFlags;
+        long defaultValue;
+
+        // Focus
+        hr = pCameraControl->GetRange(CameraControl_Focus,
+            &minValue, // min
+            &maxValue, // max
+            &minStep, // minstep
+            &defaultValue, // default
+            &capFlags); // capflags
+        if(verbose)printf("SETUP: Focus controls - min:%d, max:%d, step: %d, default: %d, [%s]\n",
+            minValue, maxValue, minStep, defaultValue, 
+            capFlags == CameraControl_Flags_Auto ? "Auto" : "Manual");
+        hr = pCameraControl->Set(CameraControl_Focus, // property
+            minValue, // value
+            CameraControl_Flags_Manual);
+        if (SUCCEEDED(hr)) {
+            if(verbose)printf("SETUP: Set manual focus control : %d.\n", minValue);
+        } else {
+            if(verbose)printf("WARNNING: Fail to turn off auto focus.\n");
+        }
+
+        // Exposure
+#if 0
+        hr = pCameraControl->GetRange(CameraControl_Exposure,
+            &minValue, // min
+            &maxValue, // max
+            &minStep, // minstep
+            &defaultValue, // default
+            &capFlags); // capflags
+        if(verbose)printf("SETUP: Exposure controls - min:%d, max:%d, step: %d, default: %d, [%s]\n",
+            minValue, maxValue, minStep, defaultValue, 
+            capFlags == CameraControl_Flags_Auto ? "Auto" : "Manual");
+        hr = pCameraControl->Set(CameraControl_Focus, // property
+            minValue, // value
+            CameraControl_Flags_Manual);
+        if (SUCCEEDED(hr)) {
+            if(verbose)printf("SETUP: Set manual exposure control : %d.\n", minValue);
+        } else {
+            if(verbose)printf("WARNNING: Fail to turn off auto exposure.\n");
+        }
+#endif
+    } else {
+        if (verbose)printf("WARNNING: Control settings are not allowed.\n");
+    }
 		
 	if(verbose)printf("SETUP: Device is setup and ready to capture.\n\n");
 	VD->readyToCapture = true;  
@@ -2002,6 +2107,7 @@ int videoInput::start(int deviceID, videoDevice *VD){
 	
 	VD->pDestFilter->Release();
 	VD->pDestFilter = NULL;
+
 	
 	return S_OK;
 } 

@@ -182,10 +182,13 @@ class videoDevice{
 	public:
 		 
 		videoDevice();
+		~videoDevice();
 		void setSize(int w, int h);
 		void NukeDownstream(IBaseFilter *pBF);
 		void destroyGraph();
-		~videoDevice();
+		bool play();
+		bool pause();
+		bool isPlaying();
 		
 		int videoSize;
 		int width;
@@ -286,6 +289,9 @@ class videoInput{
 		bool isFrameNew(int deviceID); 
 		
 		bool isDeviceSetup(int deviceID);
+		bool play(int deviceID);
+		bool pause(int deviceID);
+		bool isPlaying(int deviceID);
 		    
 		//Returns the pixels - flipRedAndBlue toggles RGB/BGR flipping - and you can flip the image too
 		unsigned char * getPixels(int deviceID, bool flipRedAndBlue = true, bool flipImage = false);
