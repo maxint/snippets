@@ -5,7 +5,7 @@ BINTYPE = LIB
 DEL = del /Q /F
 
 CC		= cl
-CFLAGS	= /nologo /W3 /O2 /Ob2 /MD /D"NDEBUG" /D"WIN32" /c
+CFLAGS	= /nologo /W3 /O2 /Ob2 /MD /GX /D"NDEBUG" /D"WIN32" /c
 CFLAGS_INCDIRS = /I"d:\libs\dshow\include"
 COMPILER= $(CC) $(CFLAGS) $(CFLAGS_INCDIRS) /Fo
 
@@ -20,7 +20,8 @@ EXT = .dll
 !endif
 
 LDFLAGS_LIBDIR = /LIBPATH:"d:\libs\dshow\lib"
-LDFLAGS_LIBS = strmbase.lib strmiids.lib ole32.lib oleaut32.lib
+LDFLAGS_LIBS = strmbase.lib strmiids.lib
+#LDFLAGS_LIBS = strmbase.lib strmiids.lib ole32.lib oleaut32.lib
 LDFLAGS = /nologo /machine:i386
 LINKER  = $(LD) $(LDFLAGS_DLL) $(LDFLAGS) $(LDFLAGS_LIBDIR) $(LDFLAGS_LIBS) /out:
 
