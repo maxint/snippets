@@ -1,3 +1,5 @@
+#include <highgui.h>
+#include <cv.h>
 
 int selectedRange = 0;
 Range rgSelected[6] = 
