@@ -1,5 +1,8 @@
 #include <highgui.h>
 #include <cv.h>
+#include <stdio.h>
+
+#define VDO_MODE 1
 
 static const char* WIN_NAME = "Capture Demo";
 
@@ -12,7 +15,6 @@ static const CvScalar BLUE = cvScalar(255,0,0);
 static const CvScalar CYAN = cvScalar(255,255,0);
 static const CvScalar YELLOW = cvScalar(0,255,255);
 static const CvScalar MAGENTA = cvScalar(255, 0,255);
-#define VDO_MODE 0
 
 int main(int argc, char** argv)
 {
@@ -105,7 +107,7 @@ int main(int argc, char** argv)
 
         // display frame information for video
 #if VDO_MODE
-        sprintf(msg, "#%d", frameIdx);
+        sprintf(msg, "#%d/%d", frameIdx, framecount);
         cvPutText(draw, msg, cvPoint(10,20), &font, GREEN);
 #endif // VDO_MODE
         cvShowImage(WIN_NAME, draw);
@@ -127,5 +129,5 @@ int main(int argc, char** argv)
     cvReleaseImage(&grey);
     cvReleaseCapture(&cap);
 
-	return 0;
+    return 0;
 }
