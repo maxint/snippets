@@ -1,0 +1,57 @@
+println "the project name is $name"
+task hello << {
+    println "the current task name is $name"
+    println "hello world"
+}
+
+// $ gradle printSysProps -DmySystemProp=xxx
+task printSysProps << {
+    println "mySystemProp: " + System.properties['mySystemProp']
+}
+
+// $ gradle printProps -PmyProjectProp=xxx
+task printProps << {
+    if (project.hasProperty('myProjectProp')) {
+        println "myProjectProp: " + myProjectProp
+    }
+}
+
+ext.projectProperties = "ext projectProperties-value"
+task printExtProps << {
+    ext.taskProperties="ext.task.properties-value"
+        if (project.hasProperty('projectProperties')){
+            println "ext.projectProperties values is " + projectProperties  
+        }
+    if (printExtProps.hasProperty('taskProperties')){
+        println "task has defined ext.taskProperties value is " + taskProperties  
+    }
+}
+
+task intro(dependsOn: hello) << {
+    print "I'm Gradle"
+}
+
+task A(dependensOn: ['B', 'C', 'D']) << {
+    print "I'm Gradle"
+}
+
+task taskX << {
+    println 'taskX'
+}
+task taskY << {
+    println 'taskY'
+} 
+taskX.dependsOn taskY
+
+task taskA << {
+    println 'taskX'
+}
+taskA.dependsOn {
+    tasks.findAll { task -> task.name.startsWith('lib') }
+}
+task lib1 << {
+    println 'lib1'
+}
+
+// $gradle hello -PskipHello=xxx
+hello.onlyIf { !project.hasProperty('skipHello') }

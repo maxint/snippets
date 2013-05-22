@@ -1,0 +1,11 @@
+allprojects {
+    task hello << { task -> println "I'm $task.project.name"}
+}
+subprojects {
+    hello << { println "- I am the sub project of $parent.name" }
+}
+project(':core').hello << {
+    println "- I'm the core component and provide service for other parts."
+}
+// $ gradle hello
+// $ gradle core:hello

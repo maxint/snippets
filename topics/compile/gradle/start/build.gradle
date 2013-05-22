@@ -1,0 +1,12 @@
+task hello {
+    doLast {
+        println "hello world"
+    }
+    doFirst {
+        println "I am maxint"
+    }
+}
+
+task hi << {
+    println "hi world"
+}
