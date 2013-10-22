@@ -18,7 +18,8 @@
 #       call build_one
 ######################################################
 
-NDK=~/Desktop/android/android-ndk-r5b
+#NDK=~/Desktop/android/android-ndk-r5b
+NDK=/home/NDK/android-ndk-r5b/
 PLATFORM=$NDK/platforms/android-8/arch-arm/
 PREBUILT=$NDK/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86
 
@@ -73,12 +74,12 @@ $PREBUILT/bin/arm-linux-androideabi-ld -rpath-link=$PLATFORM/usr/lib -L$PLATFORM
 #ADDITIONAL_CONFIGURE_FLAG=
 #build_one
 
-#arm v7vfpv3
-CPU=armv7-a
-OPTIMIZE_CFLAGS="-mfloat-abi=softfp -mfpu=vfpv3-d16 -marm -march=$CPU "
-PREFIX=./android/$CPU 
-ADDITIONAL_CONFIGURE_FLAG=
-build_one
+#arm v7vfpv3 (default)
+#CPU=armv7-a
+#OPTIMIZE_CFLAGS="-mfloat-abi=softfp -mfpu=vfpv3-d16 -marm -march=$CPU "
+#PREFIX=./android/$CPU 
+#ADDITIONAL_CONFIGURE_FLAG=
+#build_one
 
 #arm v7vfp
 #CPU=armv7-a
@@ -88,11 +89,11 @@ build_one
 #build_one
 
 #arm v7n
-#CPU=armv7-a
-#OPTIMIZE_CFLAGS="-mfloat-abi=softfp -mfpu=neon -marm -march=$CPU -mtune=cortex-a8"
-#PREFIX=./android/$CPU 
-#ADDITIONAL_CONFIGURE_FLAG=--enable-neon
-#build_one
+CPU=armv7-a
+OPTIMIZE_CFLAGS="-mfloat-abi=softfp -mfpu=neon -marm -march=$CPU -mtune=cortex-a8"
+PREFIX=./android/$CPU 
+ADDITIONAL_CONFIGURE_FLAG=--enable-neon
+build_one
 
 #arm v6+vfp
 #CPU=armv6
