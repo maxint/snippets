@@ -10,7 +10,7 @@ rooturl = 'http://doc-server'
 username = 'lny1856'
 
 def usage():
-    print 'usage: checkin.py <passwd>'
+    print 'usage: checkin.py [username] <passwd>'
 
 def checkin(passwd):
     # get field name
@@ -41,20 +41,24 @@ def checkin(passwd):
 if __name__ == '__main__':
     if len(sys.argv) == 2:
         passwd = sys.argv[1]
-    elif len(sys.argv) == 1:
-        passwd = getpass.getpass()
-    else:
+    elif len(sys.argv) == 3:
+        username = sys.argv[1]
+        passwd = sys.argv[2]
+    elif len(sys.argv) != 1:
         usage()
         sys.exit(-1)
 
     count = 0
+    print 'Username: {}'.format(username)
     while count < 3:
+        if passwd is None:
+            passwd = getpass.getpass()
         r, msg = checkin(passwd)
         print msg
         if r:
             break
         else:
-            passwd = getpass.getpass()
+            passwd = None
             count += 1
 
     import time
