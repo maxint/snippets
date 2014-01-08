@@ -32,11 +32,12 @@ def checkin(passwd):
     # check in
     login_data = urllib.urlencode({'push_type': '2', fieldname: username, 'password': passwd})
     res = opener.open(rooturl + '/confirm.asp', login_data)
-    if res.geturl() == rooturl + '/default.asp':
-        return True, 'Success!'
-    else:
+    #import ipdb; ipdb.set_trace()
+    if res.geturl() == rooturl + '/confirm.asp':
         errstr = re.findall(r'alert\("([^"]+)', res.read())[0]
         return False, errstr
+    else:
+        return True, 'Success!'
 
 if __name__ == '__main__':
     if len(sys.argv) == 2:
@@ -47,6 +48,8 @@ if __name__ == '__main__':
     elif len(sys.argv) != 1:
         usage()
         sys.exit(-1)
+    else:
+        passwd = None
 
     count = 0
     print 'Username: {}'.format(username)
