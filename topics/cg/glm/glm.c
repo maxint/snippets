@@ -29,7 +29,7 @@
 
 #define LINE_BYTES(w, b)	((((w * b) + 31) & ~31) >> 3)
 
-#define DEFAULT_TEX_ID -1
+#define DEFAULT_TEX_ID 0xFFFF
 #define DEFAULT_PIXEL_FORMAT GL_RGB
 #define SINGLE_STRING_GROUP_NAMES 1
 
@@ -308,7 +308,6 @@ static GLboolean glmCopyFile(const char* from, const char* to)
 {
     FILE *fp_from=NULL, *fp_to=NULL;
     char ch;
-    GLboolean flag = GL_TRUE;
 
     fp_from = fopen(from, "rb");
     if (fp_from==NULL) 
@@ -430,10 +429,6 @@ static GLuint glmWeldVectors(GLfloat* copies, GLfloat* vectors, GLuint* numvecto
     GLuint   copied;
     GLuint   i, j;
 
-    if(!copies)
-        //return MERR_MEMORY;
-        return -1;
-
     memcpy(copies, vectors, (sizeof(GLfloat) * 3 * (*numvectors + 1)));
     copied = 1;
     for (i = 1; i <= *numvectors; i++)
@@ -459,8 +454,7 @@ duplicate:
     }
 
     *numvectors = copied-1;
-    //return MOK;
-    return 0;
+    return copied;
 }
 
 
