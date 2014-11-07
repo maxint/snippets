@@ -9,6 +9,9 @@
 """
 Generate compare result between ground true and tracking result for
 Object Tracking project.
+
+v0.0.1
+
 """
 
 import subprocess
@@ -25,11 +28,29 @@ class Rect():
         self.xmax = right
         self.ymax = bottom
 
+    def formCenterSize(x, y, width, height):
+        return Rect(x - width / 2,
+                    y - height / 2,
+                    x + width / 2,
+                    y + height / 2)
+
+    def cx(self):
+        return (self.xmin + self.xmax) / 2
+
+    def cy(self):
+        return (self.ymin + self.ymax) / 2
+
+    def center(self):
+        return self.cx(), self.cy()
+
     def width(self):
         return self.xmax - self.xmin
 
     def height(self):
         return self.ymax - self.ymin
+
+    def size(self):
+        return self.width(), self.height()
 
     def area(self):
         return self.width() * self.height()
@@ -104,9 +125,17 @@ def overlap(rc1, rc2):
         return float((rc1 & rc2).area()) / max(1, (rc1 | rc2).area())
 
 
-def compare(marks, result):
+def overlap_only_pos(rc1, rc2):
+    if rc1.zero() and rc2.zero():
+        return 1.0
+    else:
+        rc1 = Rect.formCenterSize(rc1.center(), rc2.size())
+        return float((rc1 & rc2).area()) / max(1, (rc1 | rc2).area())
+
+
+def compare(marks, result, overlapfn=overlap):
     assert len(marks) == len(result)
-    return [(rc1, rc2, overlap(rc1, rc2)) for rc1, rc2 in zip(marks, result)]
+    return [(rc1, rc2, overlapfn(rc1, rc2)) for rc1, rc2 in zip(marks, result)]
 
 
 def save_compare(path, results, overlapThreshold):
@@ -152,27 +181,24 @@ def save_summary(spath, results):
         f.write('Passed ratio: {}\n'.format(pratio))
 
 
-def batch(spath, markpaths, overlapThreshold):
+def get_markpaths(dpath):
+    return glob.glob(os.path.join(dpath, '*_fingerMark.txt'))
+
+
+def main(dpath, overlapfn, overlapThreshold=0.5):
+    markpaths = get_markpaths(dpath)
+    spath = os.path.join(dpath, 'summary.csv')
     tresults = []
     for mpath in markpaths:
         rpath = mpath + '_res.txt'
         cpath = mpath + '_res.csv'
         marks = parse_marks(mpath)
         result = parse_result(rpath)
-        res = save_compare(cpath, compare(marks, result), overlapThreshold)
+        cresult = compare(marks, result, overlapfn)
+        res = save_compare(cpath, cresult, overlapThreshold)
         tresults.append(res)
 
     save_summary(spath, tresults)
-
-
-def get_markpaths(dpath):
-    return glob.glob(os.path.join(dpath, '*_fingerMark.txt'))
-
-
-def main(dpath, overlapThreshold=0.5):
-    markpaths = get_markpaths(dpath)
-    spath = os.path.join(dpath, 'summary.csv')
-    batch(spath, markpaths, overlapThreshold)
 
 
 def copy_from_mobile(src, dst):
@@ -187,9 +213,25 @@ def test():
 
 if __name__ == '__main__':
     import argparse
+
+    def restricted_float(start, end):
+        def impl(x):
+            x = float(x)
+            if x < start or x > end:
+                msg = "%r not in range [%r, %r]".format(x, start, end)
+                raise argparse.ArgumentTypeError(msg)
+            return x
+        return impl
+
     parser = argparse.ArgumentParser(description='OT result report')
     parser.add_argument('--nocopy', '-n', action='store_true', default=False,
                         help='do not copy data from mobile')
+    parser.add_argument('--overlap',
+                        choices=['rect', 'pos'], default='pos',
+                        help='overlap function')
+    parser.add_argument('--threshold', '-t',
+                        type=restricted_float(0.1, 0.9), default=0.5,
+                        help='overlap threshold')
     args = parser.parse_args()
 
     DATAPATH = 'data'
@@ -197,7 +239,10 @@ if __name__ == '__main__':
         mdir = '/sdcard/Arcsoft/com.arcsoft.objecttrackingload/ConfigFile'
         shutil.rmtree(DATAPATH)
         copy_from_mobile(mdir, DATAPATH)
-    main(DATAPATH)
+
+    main(DATAPATH,
+         dict(rect=overlap, pos=overlap_only_pos)[args.overlap],
+         args.threshold)
 
     os.system('pause')
     print 'Done!'
