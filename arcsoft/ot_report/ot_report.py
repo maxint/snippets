@@ -20,6 +20,8 @@ import glob
 import os
 import shutil
 
+quiet = False
+
 
 class Rect():
     def __init__(self, left, top, right, bottom):
@@ -112,6 +114,8 @@ def parse_marks(path):
             if idx == len(data):
                 data.append(rect)
             elif idx == len(data) - 1:
+                if not quiet:
+                    print '[W] duplicate mark: ', line
                 data[idx] = rect
             else:
                 raise Exception('Wrong data: ' + line)
@@ -190,8 +194,9 @@ def main(dpath, overlapfn, overlapThreshold=0.5):
     spath = os.path.join(dpath, 'summary.csv')
     tresults = []
     for mpath in markpaths:
-        rpath = mpath + '_res.txt'
-        cpath = mpath + '_res.csv'
+        mpath_noext = os.path.splitext(mpath)[0]
+        rpath = mpath_noext + '_res.txt'
+        cpath = mpath_noext + '_res.csv'
         marks = parse_marks(mpath)
         result = parse_result(rpath)
         cresult = compare(marks, result, overlapfn)
@@ -232,9 +237,12 @@ if __name__ == '__main__':
     parser.add_argument('--threshold', '-t',
                         type=restricted_float(0.1, 0.9), default=0.5,
                         help='overlap threshold')
+    parser.add_argument('--quiet', action='store_true', default=False,
+                        help='no warnning')
     args = parser.parse_args()
 
     DATAPATH = 'data'
+    quiet = args.quiet
     if not args.nocopy:
         mdir = '/sdcard/Arcsoft/com.arcsoft.objecttrackingload/ConfigFile'
         shutil.rmtree(DATAPATH)
