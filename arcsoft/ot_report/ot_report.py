@@ -18,7 +18,6 @@ import subprocess
 import re
 import glob
 import os
-import shutil
 
 quiet = False
 
@@ -211,6 +210,15 @@ def copy_from_mobile(src, dst):
     subprocess.check_call(cmd)
 
 
+def get_unused_path(path):
+    i = 0
+    tpath = path
+    while os.path.exists(tpath):
+        tpath = path + str(i)
+        i += 1
+    return tpath
+
+
 def test():
     assert Rect(0, 0, 0, 0).zero()
     assert not Rect(1, 0, 0, 0).zero()
@@ -228,9 +236,13 @@ if __name__ == '__main__':
             return x
         return impl
 
+    mdir = '/sdcard/Arcsoft/com.arcsoft.objecttrackingload/ConfigFile'
+
     parser = argparse.ArgumentParser(description='OT result report')
     parser.add_argument('--nocopy', '-n', action='store_true', default=False,
                         help='do not copy data from mobile')
+    parser.add_argument('--source', '-s', default=mdir,
+                        help='source data path in android device')
     parser.add_argument('--overlap',
                         choices=['rect', 'pos'], default='pos',
                         help='overlap function')
@@ -241,14 +253,14 @@ if __name__ == '__main__':
                         help='no warnning')
     args = parser.parse_args()
 
-    DATAPATH = 'data'
+    datadir = 'data'
     quiet = args.quiet
     if not args.nocopy:
         mdir = '/sdcard/Arcsoft/com.arcsoft.objecttrackingload/ConfigFile'
-        shutil.rmtree(DATAPATH)
-        copy_from_mobile(mdir, DATAPATH)
+        datadir = get_unused_path(datadir)
+        copy_from_mobile(args.source, datadir)
 
-    main(DATAPATH,
+    main(datadir,
          dict(rect=overlap, pos=overlap_only_pos)[args.overlap],
          args.threshold)
 
