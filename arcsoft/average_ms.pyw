@@ -9,11 +9,10 @@ e.g.
 XXX: jni/ot-jni.cpp:ASOT_Tracking cost time 17.011ms
 XXX: jni/ot-jni.cpp:ASOT_Tracking cost time 15.649ms
 
-
 Usage:
 
 1. Copy adb time log to system clipboard (Ctrl+C).
-2. Run this program.
+2. Run this program, and show the averge time consume.
 3. Paste to Excel. (Ctrl+V).
 
 """
@@ -42,7 +41,6 @@ log = r.clipboard_get()
 
 try:
     times = totimes(log)
-    log = '\n'.join(map(str, times))
 
     avg_time = reduce(lambda x, y: x + y, times) / len(times)
     msg = '''Averge time: {}ms.
@@ -51,6 +49,8 @@ Ctrl+V in Excel to get them.'''.format(avg_time)
     tkMessageBox.showinfo('Result', msg)
 
     # copy to system clipboard
+    log = '\n'.join(map(str, times))
+    log = 'Averge: ' + str(avg_time) + '\n' + log
     r.clipboard_clear()
     r.clipboard_append(log)
 except:
