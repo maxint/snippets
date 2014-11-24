@@ -46,7 +46,8 @@ try:
 
     avg_time = reduce(lambda x, y: x + y, times) / len(times)
     msg = '''Averge time: {}ms.
-And formated times is ready for Excel in the clipboard.'''.format(avg_time)
+Note: Formated times is ready for Excel in the clipboard.
+Ctrl+V in Excel to get them.'''.format(avg_time)
     tkMessageBox.showinfo('Result', msg)
 
     # copy to system clipboard
