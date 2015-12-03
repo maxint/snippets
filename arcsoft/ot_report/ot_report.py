@@ -86,7 +86,12 @@ def valid_rect(rc):
 
 
 def parse_result(path):
-    patt = re.compile(r'^(-?\d+),\s*(-?\d+),\s*(-?\d+),\s*(-?\d+)$')
+    """
+    e.g.
+        32, (242, 119, 27, 28)
+        32  (242, 119, 27, 28)
+    """
+    patt = re.compile(r'^(-?\d+),?\s*(-?\d+),\s*(-?\d+),\s*(-?\d+)$')
     data = []
     with open(path) as f:
         for line in f:
