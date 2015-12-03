@@ -43,15 +43,17 @@ def split_times_by_name(times):
     k_times = dict((k, list()) for k in keys)
     for k, v in times:
         k_times[k].append(v)
+    results = [(k, times, get_average_time(times)) for k, times in k_times.items()]
 
-    return [(k, times, get_average_time(times)) for k, times in k_times.iteritems()]
+    import operator
+    return sorted(results, key=operator.itemgetter(2), reverse=True)
 
 
 def compose_lite_report(items):
     assert len(items) > 0
 
     msg = 'Average Time List:\n\n'
-    msg += '\n'.join(map(lambda (k, _, avg): '[{}] {}'.format(k, avg), items))
+    msg += '\n'.join(map(lambda (k, times, avg): '[{}] {} #{}'.format(k, avg, len(times)), items))
     msg += '\n\n'
     msg += 'Note: Formatted times is ready for Excel in the clipboard.\n'
     msg += 'Ctrl+V in Excel to get them.'
