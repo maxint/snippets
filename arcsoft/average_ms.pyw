@@ -38,8 +38,8 @@ def get_average_time(times):
     return reduce(lambda x, y: x + y, times) / len(times)
 
 
-def get_min_max_time(times):
-    return min(times), max(times);
+def second_max(times):
+    return times[0] if len(times) == 1 else sorted(times)[-2]
 
 
 def split_times_by_name(times):
@@ -57,7 +57,7 @@ def compose_lite_report(items):
     assert len(items) > 0
 
     msg = 'Average Time List:\n\n'
-    msg += '\n'.join(map(lambda (k, times, avg): '[{}] {:.2f}/{:.2f}/{:.2f} #{}'.format(k, avg, min(times), max(times), len(times)), items))
+    msg += '\n'.join(map(lambda (k, times, avg): '[{}] {:.2f}/{:.2f}/{:.2f} #{}'.format(k, avg, min(times), second_max(times), len(times)), items))
     msg += '\n\n'
     msg += 'Note: Formatted times is ready for Excel in the clipboard.\n'
     msg += 'Ctrl+V in Excel to get them.'
