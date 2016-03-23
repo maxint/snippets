@@ -57,7 +57,7 @@ def compose_lite_report(items):
     assert len(items) > 0
 
     msg = 'Average Time List:\n\n'
-    msg += '\n'.join(map(lambda (k, times, avg): '[{}] {:.2f}/{:.2f}/{:.2f} #{}'.format(k, avg, min(times), second_max(times), len(times)), items))
+    msg += '\n'.join(map(lambda (k, times, avg): '[{}] {:.2f}/{:.2f}/{:.2f} #{}'.format(k, avg, min(times), max(times), len(times)), items))
     msg += '\n\n'
     msg += 'Note: Formatted times is ready for Excel in the clipboard.\n'
     msg += 'Ctrl+V in Excel to get them.'
