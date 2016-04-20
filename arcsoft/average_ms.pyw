@@ -47,7 +47,7 @@ def split_times_by_name(times):
     k_times = dict((k, list()) for k in keys)
     for k, v in times:
         k_times[k].append(v)
-    results = [(k, times, get_average_time(times)) for k, times in k_times.items()]
+    results = [(k, times, get_average_time(times), max(times)) for k, times in k_times.items()]
 
     import operator
     return sorted(results, key=operator.itemgetter(2), reverse=True)
@@ -57,7 +57,7 @@ def compose_lite_report(items):
     assert len(items) > 0
 
     msg = 'Average Time List:\n\n'
-    msg += '\n'.join(map(lambda (k, times, avg): '[{}] {:.2f}/{:.2f}/{:.2f} #{}'.format(k, avg, min(times), max(times), len(times)), items))
+    msg += '\n'.join(map(lambda (k, times, avg_t, max_t): '[{}] {:.2f}/{:.2f}/{:.2f} #{}'.format(k, avg_t, min(times), max_t, len(times)), items))
     msg += '\n\n'
     msg += 'Note: Formatted times is ready for Excel in the clipboard.\n'
     msg += 'Ctrl+V in Excel to get them.'
@@ -68,9 +68,9 @@ def compose_full_report(items):
     if not items:
         return
 
-    msg = '\t'.join('{} ({})'.format(k, avg) for k, _, avg in items)
-    max_lines = max(len(times) for _, times, _ in items)
-    times_v = [times for _, times, _ in items]
+    msg = '\t'.join('{} (avg:{}/max:{})'.format(t[0], t[2], t[3]) for t in items)
+    max_lines = max(len(t[1]) for t in items)
+    times_v = [t[1] for t in items]
     for i in xrange(max_lines):
         msg += '\n' + '\t'.join(str(times[i]) if i < len(times) else '' for times in times_v)
     return msg
@@ -86,7 +86,9 @@ def main():
 
     # show summary
     if items:
-        tkMessageBox.showinfo('Average Time Summary', compose_lite_report(items))
+        import time
+        time_str = time.strftime('%a, %d %b %Y %H:%M:%S')
+        tkMessageBox.showinfo('Average Time Summary (%s)' % time_str , compose_lite_report(items))
     else:
         tkMessageBox.showwarning('No Valid Data is Found', '''No line in valid format is found in clipboard!
 
@@ -100,11 +102,15 @@ XXX: V/JNI(7410): ASOT_Tracking cost time 17.472ms
 ''')
 
     # copy to system clipboard
+    full_report = compose_full_report(items)
     r.clipboard_clear()
-    r.clipboard_append(compose_full_report(items))
+    r.clipboard_append(full_report)
 
     r.destroy()
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except Exception, e:
+        tkMessageBox.showerror('Python Exception', str(e))
     print 'Done!'
